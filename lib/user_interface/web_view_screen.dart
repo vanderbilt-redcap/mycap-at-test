@@ -1,13 +1,13 @@
-import 'dart:convert';
-import 'dart:io';
+import "dart:convert";
+import "dart:io";
 
-import 'package:archive/archive.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+import "package:archive/archive.dart";
+import "package:flutter/material.dart";
+import "package:flutter_inappwebview/flutter_inappwebview.dart";
+import "package:path_provider/path_provider.dart";
+import "package:permission_handler/permission_handler.dart";
 
-import 'results_screen.dart';
+import "results_screen.dart";
 
 class WebViewScreen extends StatefulWidget {
   /// Local path to the ZIP file (e.g. from StartScreen)
@@ -88,40 +88,39 @@ class _WebViewScreenState extends State<WebViewScreen> {
   void _setupJavaScriptHandler() {
     _webViewController?.addJavaScriptHandler(
       handlerName: "returnData",
-        callback: (args) {
+      callback: (args) {
         late Map<String, dynamic> payload;
-          if (args.isEmpty) return;
+        if (args.isEmpty) return;
 
-          final raw = args[0];
-          if (raw is! String) {
-            debugPrint("❌ Expected String but got ${raw.runtimeType}");
+        final raw = args[0];
+        if (raw is! String) {
+          debugPrint("❌ Expected String but got ${raw.runtimeType}");
+          return;
+        }
+
+        try {
+          final decoded = jsonDecode(raw);
+
+          // Check if it's still a string after decoding
+          if (decoded is String) {
+            // This means it was double-encoded
+            payload = jsonDecode(decoded) as Map<String, dynamic>;
+          } else if (decoded is Map<String, dynamic>) {
+            payload = decoded;
+          } else {
+            debugPrint("❌ JSON structure unexpected: ${decoded.runtimeType}");
             return;
           }
 
-          try {
-            final decoded = jsonDecode(raw);
-
-            // Check if it's still a string after decoding
-            if (decoded is String) {
-              // This means it was double-encoded
-              payload = jsonDecode(decoded) as Map<String, dynamic>;
-            } else if (decoded is Map<String, dynamic>) {
-              payload = decoded;
-            } else {
-              debugPrint("❌ JSON structure unexpected: ${decoded.runtimeType}");
-              return;
-            }
-
-            debugPrint("📥 Received payload: $payload");
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => ResultsScreen(data: payload)),
-            );
-          } catch (e) {
-            debugPrint("❌ JSON decode failed: $e");
-          }
+          debugPrint("📥 Received payload: $payload");
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => ResultsScreen(data: payload)),
+          );
+        } catch (e) {
+          debugPrint("❌ JSON decode failed: $e");
         }
+      },
     );
-
   }
 
   @override
