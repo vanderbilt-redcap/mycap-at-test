@@ -1,10 +1,8 @@
-// lib/screens/start_screen.dart
-
 import "dart:io";
-
 import "package:dio/dio.dart";
 import "package:file_picker/file_picker.dart";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:mycap_at_test_app/user_interface/web_view_screen.dart";
 import "package:path_provider/path_provider.dart";
 
@@ -73,7 +71,7 @@ class _StartScreenState extends State<StartScreen> {
         savePath,
         options: Options(headers: headers),
         onReceiveProgress: (received, total) {
-          // optionally: update a progress indicator
+          // update progress indicator if desired
         },
       );
 
@@ -86,6 +84,16 @@ class _StartScreenState extends State<StartScreen> {
     } finally {
       setState(() => _isDownloading = false);
     }
+  }
+
+  Future<void> _useBundledZip() async {
+    // Load the bundled zip from assets and copy it into docs
+    final byteData = await rootBundle.load("assets/test.zip");
+    final dir = await getApplicationDocumentsDirectory();
+    final dest = File("${dir.path}/test.zip");
+    await dest.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+    await _checkForExistingZip();
+    _navigateToWebView(dest.path);
   }
 
   void _useExisting() {
@@ -113,7 +121,15 @@ class _StartScreenState extends State<StartScreen> {
               label: const Text("Upload ZIP from Device"),
               onPressed: _pickLocalZip,
             ),
+            const SizedBox(height: 16),
+
+            ElevatedButton.icon(
+              icon: const Icon(Icons.insert_drive_file),
+              label: const Text("Use Bundled Test ZIP"),
+              onPressed: _useBundledZip,
+            ),
             const SizedBox(height: 24),
+
             const Text(
               "Download ZIP from URL",
               style: TextStyle(fontWeight: FontWeight.bold),
@@ -146,6 +162,7 @@ class _StartScreenState extends State<StartScreen> {
               onPressed: _isDownloading ? null : _downloadZip,
             ),
             const SizedBox(height: 24),
+
             if (_hasExisting && _existingPath != null) ...[
               const Divider(),
               ListTile(

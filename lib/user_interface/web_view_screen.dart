@@ -1,15 +1,13 @@
-// lib/user_interface/web_view_screen.dart
+import 'dart:convert';
+import 'dart:io';
 
-import "dart:convert";
-import "dart:io";
+import 'package:archive/archive.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-import "package:archive/archive.dart";
-import "package:flutter/material.dart";
-import "package:flutter_inappwebview/flutter_inappwebview.dart";
-import "package:path_provider/path_provider.dart";
-import "package:permission_handler/permission_handler.dart";
-
-import "results_screen.dart";
+import 'results_screen.dart';
 
 class WebViewScreen extends StatefulWidget {
   /// Local path to the ZIP file (e.g. from StartScreen)
@@ -39,7 +37,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
     await Permission.location.request();
   }
 
-  /// Search a directory recursively for index.html (skip __MACOSX folders).
   Future<String?> _findIndexHtml(String dirPath) async {
     final dir = Directory(dirPath);
     await for (final entity in dir.list(recursive: true, followLinks: false)) {
@@ -52,23 +49,20 @@ class _WebViewScreenState extends State<WebViewScreen> {
     return null;
   }
 
-  /// If already extracted, reuse; otherwise unzip `widget.filePath` here.
   Future<void> _prepareLocalFiles() async {
     final docs = await getApplicationDocumentsDirectory();
     final extractionDir = Directory("${docs.path}/website_test");
 
-    if (!await extractionDir.exists()) {
+    if (await extractionDir.exists()) {
+      // optional: clear directory if you always want to overwrite
+      // await extractionDir.delete(recursive: true);
+      // await extractionDir.create(recursive: true);
+    } else {
       await extractionDir.create(recursive: true);
     }
 
-    // Clear prior contents if desired:
-    // await extractionDir.delete(recursive: true);
-    // await extractionDir.create(recursive: true);
-
-    // Decode & extract the ZIP from widget.filePath
     final bytes = await File(widget.filePath).readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
-
     for (final file in archive) {
       final outPath = "${extractionDir.path}/${file.name}";
       if (file.isFile) {
@@ -80,7 +74,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
       }
     }
 
-    // Locate the extracted index.html
     final found = await _findIndexHtml(extractionDir.path);
     if (found == null) {
       throw Exception("index.html not found inside ZIP");
@@ -92,26 +85,43 @@ class _WebViewScreenState extends State<WebViewScreen> {
     });
   }
 
-  /// Install a JS handler so your page can call:
-  ///   window.returnData.postMessage(JSON.stringify({...}));
   void _setupJavaScriptHandler() {
     _webViewController?.addJavaScriptHandler(
       handlerName: "returnData",
-      callback: (args) {
-        if (args.isEmpty) return;
-        final raw = args.first.toString();
-        Map<String, dynamic> data;
-        try {
-          data = jsonDecode(raw) as Map<String, dynamic>;
-        } catch (_) {
-          data = {"error": "Invalid JSON"};
+        callback: (args) {
+        late Map<String, dynamic> payload;
+          if (args.isEmpty) return;
+
+          final raw = args[0];
+          if (raw is! String) {
+            debugPrint("❌ Expected String but got ${raw.runtimeType}");
+            return;
+          }
+
+          try {
+            final decoded = jsonDecode(raw);
+
+            // Check if it's still a string after decoding
+            if (decoded is String) {
+              // This means it was double-encoded
+              payload = jsonDecode(decoded) as Map<String, dynamic>;
+            } else if (decoded is Map<String, dynamic>) {
+              payload = decoded;
+            } else {
+              debugPrint("❌ JSON structure unexpected: ${decoded.runtimeType}");
+              return;
+            }
+
+            debugPrint("📥 Received payload: $payload");
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => ResultsScreen(data: payload)),
+            );
+          } catch (e) {
+            debugPrint("❌ JSON decode failed: $e");
+          }
         }
-        // Navigate to ResultsScreen with the decoded data
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => ResultsScreen(data: data)));
-      },
     );
+
   }
 
   @override
@@ -143,16 +153,18 @@ class _WebViewScreenState extends State<WebViewScreen> {
                   _setupJavaScriptHandler();
                 },
                 onLoadStop: (controller, url) async {
-                  // Override window.returnData if not already done.
+                  // Inject a full window.returnData object
                   await controller.evaluateJavascript(
                     source: '''
-                    if (!window.returnDataOverridden) {
-                      window.returnDataOverridden = true;
-                      window.returnData.postMessage = function(data) {
-                        window.flutter_inappwebview.callHandler("returnData", data);
-                      };
-                    }
-                  ''',
+                      if (!window.returnDataOverridden) {
+                        window.returnDataOverridden = true;
+                        window.returnData = {
+                          postMessage: function(data) {
+                            window.flutter_inappwebview.callHandler("returnData", JSON.stringify(data));
+                          }
+                        };
+                      }
+                    ''',
                   );
                 },
                 onPermissionRequest: (controller, request) async {
@@ -161,8 +173,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     action: PermissionResponseAction.GRANT,
                   );
                 },
-                onConsoleMessage: (controller, msg) {
-                  debugPrint("WebView console: ${msg.message}");
+                // You can still log console messages if you need them for debugging:
+                onConsoleMessage: (controller, consoleMessage) {
+                  debugPrint("WebView console: ${consoleMessage.message}");
                 },
                 onReceivedServerTrustAuthRequest:
                     (controller, challenge) async {
