@@ -1,19 +1,23 @@
-import "dart:convert";
-import "dart:io";
+import 'dart:convert';
+import 'dart:io';
 
-import "package:archive/archive.dart";
-import "package:flutter/material.dart";
-import "package:flutter_inappwebview/flutter_inappwebview.dart";
-import "package:path_provider/path_provider.dart";
-import "package:permission_handler/permission_handler.dart";
+import 'package:archive/archive.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-import "results_screen.dart";
+import 'results_screen.dart';
 
 class WebViewScreen extends StatefulWidget {
-  /// Local path to the ZIP file (e.g. from StartScreen)
   final String filePath;
+  final Map<String, dynamic> queryParams;
 
-  const WebViewScreen({required this.filePath, super.key});
+  const WebViewScreen({
+    required this.filePath,
+    this.queryParams = const {},
+    super.key,
+  });
 
   @override
   State<WebViewScreen> createState() => _WebViewScreenState();
@@ -23,7 +27,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
   InAppWebViewController? _webViewController;
   bool _isLoading = true;
   String? _indexFilePath;
-
   final List<String> logs = [];
 
   @override
@@ -43,8 +46,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
     final dir = Directory(dirPath);
     await for (final entity in dir.list(recursive: true, followLinks: false)) {
       if (entity is File &&
-          entity.path.endsWith("index.html") &&
-          !entity.path.contains("__MACOSX")) {
+          entity.path.endsWith('index.html') &&
+          !entity.path.contains('__MACOSX')) {
         return entity.path;
       }
     }
@@ -53,20 +56,16 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   Future<void> _prepareLocalFiles() async {
     final docs = await getApplicationDocumentsDirectory();
-    final extractionDir = Directory("${docs.path}/website_test");
+    final extractionDir = Directory('${docs.path}/website_test');
 
-    if (await extractionDir.exists()) {
-      // optional: clear directory if you always want to overwrite
-      // await extractionDir.delete(recursive: true);
-      // await extractionDir.create(recursive: true);
-    } else {
+    if (!await extractionDir.exists()) {
       await extractionDir.create(recursive: true);
     }
 
     final bytes = await File(widget.filePath).readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
     for (final file in archive) {
-      final outPath = "${extractionDir.path}/${file.name}";
+      final outPath = '${extractionDir.path}/${file.name}';
       if (file.isFile) {
         final outFile = File(outPath);
         await outFile.create(recursive: true);
@@ -78,7 +77,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     final found = await _findIndexHtml(extractionDir.path);
     if (found == null) {
-      throw Exception("index.html not found inside ZIP");
+      throw Exception('index.html not found inside ZIP');
     }
 
     setState(() {
@@ -89,38 +88,36 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   void _setupJavaScriptHandler() {
     _webViewController?.addJavaScriptHandler(
-      handlerName: "returnData",
+      handlerName: 'returnData',
       callback: (args) {
         late Map<String, dynamic> payload;
-        payload = {"logs": logs};
+
+        payload = {'logs': logs};
         if (args.isEmpty && payload.isEmpty) return;
 
         final raw = args[0];
         if (raw is! String) {
-          debugPrint("❌ Expected String but got ${raw.runtimeType}");
+          debugPrint('❌ Expected String but got ${raw.runtimeType}');
           return;
         }
 
         try {
           final decoded = jsonDecode(raw);
-
-          // Check if it's still a string after decoding
           if (decoded is String) {
-            // This means it was double-encoded
             payload = jsonDecode(decoded) as Map<String, dynamic>;
           } else if (decoded is Map<String, dynamic>) {
             payload = decoded;
           } else {
-            debugPrint("❌ JSON structure unexpected: ${decoded.runtimeType}");
+            debugPrint('❌ JSON structure unexpected: ${decoded.runtimeType}');
             return;
           }
 
-          debugPrint("📥 Received payload: $payload");
+          debugPrint('📥 Received payload: $payload');
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => ResultsScreen(data: payload)),
           );
         } catch (e) {
-          debugPrint("❌ JSON decode failed: $e");
+          debugPrint('❌ JSON decode failed: $e');
         }
       },
     );
@@ -128,68 +125,81 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading || _indexFilePath == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Build a file:// URI with query parameters
+    final params = widget.queryParams.map((key, value) {
+      if (value is Iterable) {
+        // flatten an Iterable of non-String
+        return MapEntry(
+          key,
+          value.map((e) => e.toString()).toList(),
+        );
+      } else {
+        return MapEntry(key, value.toString());
+      }
+    });
+    final uri = Uri.file(_indexFilePath!).replace(queryParameters: params);
+
+    print("The URI is: $uri");
+    print("The received query params: ${widget.queryParams}");
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Embedded Website"),
+        title: const Text('Embedded Website'),
         leading: BackButton(onPressed: () => Navigator.of(context).pop()),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-              child: InAppWebView(
-                initialUrlRequest: URLRequest(
-                  url: WebUri("file://$_indexFilePath"),
-                ),
-                initialSettings: InAppWebViewSettings(
-                  javaScriptEnabled: true,
-                  allowFileAccessFromFileURLs: true,
-                  allowUniversalAccessFromFileURLs: true,
-                  allowingReadAccessTo: WebUri(
-                    'file://${_indexFilePath!.substring(0, _indexFilePath!.lastIndexOf('/'))}/',
-                  ),
-                  mediaPlaybackRequiresUserGesture: false,
-                  allowsInlineMediaPlayback: true,
-                ),
-                onWebViewCreated: (controller) {
-                  _webViewController = controller;
-                  _setupJavaScriptHandler();
-                },
-                onLoadStop: (controller, url) async {
-                  // Inject a full window.returnData object
-                  await controller.evaluateJavascript(
-                    source: '''
-                      if (!window.returnDataOverridden) {
-                        window.returnDataOverridden = true;
-                        window.returnData = {
-                          postMessage: function(data) {
-                            window.flutter_inappwebview.callHandler("returnData", JSON.stringify(data));
-                          }
-                        };
-                      }
-                    ''',
-                  );
-                },
-                onPermissionRequest: (controller, request) async {
-                  return PermissionResponse(
-                    resources: request.resources,
-                    action: PermissionResponseAction.GRANT,
-                  );
-                },
-                // You can still log console messages if you need them for debugging:
-                onConsoleMessage: (controller, consoleMessage) {
-                  debugPrint("WebView console: ${consoleMessage.message}");
-                  logs.add(
-                    "${DateTime.now().toIso8601String()}: ${consoleMessage.message}}",
-                  );
-                },
-                onReceivedServerTrustAuthRequest:
-                    (controller, challenge) async {
-                      return ServerTrustAuthResponse(
-                        action: ServerTrustAuthResponseAction.PROCEED,
-                      );
-                    },
-              ),
+      body: SafeArea(
+        child: InAppWebView(
+          initialUrlRequest: URLRequest(
+            url: WebUri(uri.toString()),
+          ),
+          initialSettings: InAppWebViewSettings(
+            javaScriptEnabled: true,
+            allowFileAccessFromFileURLs: true,
+            allowUniversalAccessFromFileURLs: true,
+            allowingReadAccessTo: WebUri(
+              'file://${_indexFilePath!.substring(0, _indexFilePath!.lastIndexOf('/'))}/',
             ),
+            mediaPlaybackRequiresUserGesture: false,
+            allowsInlineMediaPlayback: true,
+          ),
+          onWebViewCreated: (controller) {
+            _webViewController = controller;
+            _setupJavaScriptHandler();
+          },
+          onLoadStop: (controller, url) async {
+            // Let the page know it's got query params if you need to read them in JS:
+            await controller.evaluateJavascript(
+              source: '''
+                window.searchParams = new URLSearchParams(window.location.search);
+              ''',
+            );
+          },
+          onPermissionRequest: (controller, request) async {
+            return PermissionResponse(
+              resources: request.resources,
+              action: PermissionResponseAction.GRANT,
+            );
+          },
+          onConsoleMessage: (controller, consoleMessage) {
+            debugPrint('WebView console: ${consoleMessage.message}');
+            logs.add(
+              '${DateTime.now().toIso8601String()}: ${consoleMessage.message}',
+            );
+          },
+          onReceivedServerTrustAuthRequest:
+              (controller, challenge) async {
+            return ServerTrustAuthResponse(
+              action: ServerTrustAuthResponseAction.PROCEED,
+            );
+          },
+        ),
+      ),
     );
   }
 }

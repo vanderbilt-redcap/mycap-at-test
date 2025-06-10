@@ -1,3 +1,4 @@
+import "dart:convert";
 import "dart:io";
 import "package:dio/dio.dart";
 import "package:file_picker/file_picker.dart";
@@ -17,7 +18,12 @@ class StartScreen extends StatefulWidget {
 class _StartScreenState extends State<StartScreen> {
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _authController = TextEditingController();
+  final TextEditingController _parametersController = TextEditingController(
+    text: "{}",
+  );
   final Dio _dio = Dio();
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   bool _isDownloading = false;
   bool _hasExisting = false;
@@ -104,8 +110,24 @@ class _StartScreenState extends State<StartScreen> {
   }
 
   void _navigateToWebView(String filepath) {
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+    print("The expected parameters are: ${_parametersController.text}");
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => WebViewScreen(filePath: filepath)),
+      MaterialPageRoute(
+        builder: (_) => WebViewScreen(
+          filePath: filepath,
+          queryParams: _parametersController.text.isNotEmpty
+              ? jsonDecode(
+                      _parametersController.text
+                          .replaceAll('“', '"')
+                          .replaceAll('”', '"'),
+                    )
+                    as Map<String, dynamic>
+              : {},
+        ),
+      ),
     );
   }
 
@@ -125,70 +147,99 @@ class _StartScreenState extends State<StartScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.upload_file),
-              label: const Text("Upload ZIP from Device"),
-              onPressed: _pickLocalZip,
-            ),
-            const SizedBox(height: 16),
-
-            ElevatedButton.icon(
-              icon: const Icon(Icons.insert_drive_file),
-              label: const Text("Use Bundled Test ZIP"),
-              onPressed: _useBundledZip,
-            ),
-            const SizedBox(height: 24),
-
-            const Text(
-              "Download ZIP from URL",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextField(
-              controller: _urlController,
-              decoration: const InputDecoration(
-                labelText: "ZIP File URL",
-                hintText: "https://example.com/archive.zip",
+      body: Form(
+        key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: ListView(
+            children: [
+              ElevatedButton.icon(
+                icon: const Icon(Icons.upload_file),
+                label: const Text("Upload ZIP from Device"),
+                onPressed: _pickLocalZip,
               ),
-              keyboardType: TextInputType.url,
-            ),
-            TextField(
-              controller: _authController,
-              decoration: const InputDecoration(
-                labelText: "Optional Auth Header",
-                hintText: "Bearer your_token_here",
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              icon: _isDownloading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.download),
-              label: Text(_isDownloading ? "Downloading…" : "Download ZIP"),
-              onPressed: _isDownloading ? null : _downloadZip,
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-            if (_hasExisting && _existingPath != null) ...[
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.folder_open),
-                title: const Text("Existing ZIP Found"),
-                subtitle: Text(_existingPath!),
-                trailing: ElevatedButton(
-                  onPressed: _useExisting,
-                  child: const Text("Use Existing"),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.insert_drive_file),
+                label: const Text("Use Bundled Test ZIP"),
+                onPressed: _useBundledZip,
+              ),
+              const SizedBox(height: 24),
+
+              const Text(
+                "Download ZIP from URL",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              TextField(
+                controller: _urlController,
+                decoration: const InputDecoration(
+                  labelText: "ZIP File URL",
+                  hintText: "https://example.com/archive.zip",
+                ),
+                keyboardType: TextInputType.url,
+              ),
+              TextField(
+                controller: _authController,
+                decoration: const InputDecoration(
+                  labelText: "Optional Auth Header",
+                  hintText: "Bearer your_token_here",
                 ),
               ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: _isDownloading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.download),
+                label: Text(_isDownloading ? "Downloading…" : "Download ZIP"),
+                onPressed: _isDownloading ? null : _downloadZip,
+              ),
+              const SizedBox(height: 24),
+
+              TextFormField(
+                controller: _parametersController,
+                decoration: const InputDecoration(
+                  labelText: "Optional Parameters",
+                ),
+                validator: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    try {
+                      // replace the smart quotes with regular quotes
+                      final json = jsonDecode(
+                        value.replaceAll('“', '"').replaceAll('”', '"'),
+                      );
+                      if (json is! Map<String, dynamic>) {
+                        return "Must be a JSON object";
+                      }
+                    } catch (e) {
+                      print("Invalid JSON: $e");
+                      return "Invalid JSON format";
+                    }
+                  }
+                  return null;
+                },
+                keyboardType: TextInputType.text,
+              ),
+              const SizedBox(height: 24),
+
+              if (_hasExisting && _existingPath != null) ...[
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.folder_open),
+                  title: const Text("Existing ZIP Found"),
+                  subtitle: Text(_existingPath!),
+                  trailing: ElevatedButton(
+                    onPressed: _useExisting,
+                    child: const Text("Use Existing"),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
