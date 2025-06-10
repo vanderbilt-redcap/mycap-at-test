@@ -72,7 +72,13 @@ Your task is delivered as a ZIP archive containing all static assets. Follow the
 
 6. **Error Handling**
 
-    * Gracefully show error messages in the UI if `returnData` is unavailable or payload JSON is invalid.
+    * If your task encounters an error, set a boolean `error` in the returned JSON:
+      This will be returned to the REDCap app and the user will see an error message. If you do not set `error`, it will default to `false`. Any received console logs will be attached to the `logs` parameter in the returned JSON.
+
+      ```js
+      const payload = JSON.stringify({ error: true, message: 'An error occurred' });
+      window.returnData.postMessage(payload);
+      ```
 
 ---
 
@@ -127,6 +133,7 @@ The following keywords are reserved for internal use and should not be used in y
 * `file://` - The protocol used to load local files in the WebView.
 * `data:` - Used for Base64-encoded data URIs in the payload.
 * `logs` - A reserved parameter that logs all print statements from within the webview to the native console.
+* `error` - Will be used as a boolean to indicate if the task has encountered an error. It will be defaulted to false, but if your results contain an error, you can set it to true. The main app will then display an error message to the user.
 
 ---
 
