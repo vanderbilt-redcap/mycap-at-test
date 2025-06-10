@@ -24,6 +24,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
   bool _isLoading = true;
   String? _indexFilePath;
 
+  final List<String> logs = [];
+
   @override
   void initState() {
     super.initState();
@@ -90,7 +92,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
       handlerName: "returnData",
       callback: (args) {
         late Map<String, dynamic> payload;
-        if (args.isEmpty) return;
+        payload = {"logs": logs};
+        if (args.isEmpty && payload.isEmpty) return;
 
         final raw = args[0];
         if (raw is! String) {
@@ -175,6 +178,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 // You can still log console messages if you need them for debugging:
                 onConsoleMessage: (controller, consoleMessage) {
                   debugPrint("WebView console: ${consoleMessage.message}");
+                  logs.add(
+                    "${DateTime.now().toIso8601String()}: ${consoleMessage.message}}",
+                  );
                 },
                 onReceivedServerTrustAuthRequest:
                     (controller, challenge) async {

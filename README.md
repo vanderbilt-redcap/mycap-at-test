@@ -118,6 +118,18 @@ lib/ (or analogous in your platform)
 
 ---
 
+## Reserved Keywords
+
+The following keywords are reserved for internal use and should not be used in your task:
+* `__MACOSX` - Automatically created by macOS when zipping files, should be ignored.
+* `index.html` - The main entry point for your task, must be present.
+* `returnData` - The JavaScript channel used to send data back to the host app.
+* `file://` - The protocol used to load local files in the WebView.
+* `data:` - Used for Base64-encoded data URIs in the payload.
+* `logs` - A reserved parameter that logs all print statements from within the webview to the native console.
+
+---
+
 ## FAQ
 
 * **How is my task installed?**
