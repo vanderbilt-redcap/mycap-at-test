@@ -37,9 +37,9 @@ class _DocsScreenState extends State<DocsScreen> {
       body: docsContent == null
           ? const Center(child: CircularProgressIndicator())
           : Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: MarkdownWidget(data: docsContent!),
-          ),
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: MarkdownWidget(data: docsContent!),
+            ),
     );
   }
 }
