@@ -206,8 +206,8 @@ Resolve any issues reported by `flutter doctor` (missing dependencies, license a
 
 ```bash
 # Clone the repo
-git clone <your-repo-url>
-cd <your-repo-folder>
+git clone git@github.com:vanderbilt-redcap/mycap-at-test.git
+cd mycap-at-test
 
 # Get dependencies
 flutter pub get
