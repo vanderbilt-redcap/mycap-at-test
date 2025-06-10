@@ -3,6 +3,7 @@ import "package:dio/dio.dart";
 import "package:file_picker/file_picker.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:mycap_at_test_app/user_interface/docs_screen.dart";
 import "package:mycap_at_test_app/user_interface/web_view_screen.dart";
 import "package:path_provider/path_provider.dart";
 
@@ -111,7 +112,19 @@ class _StartScreenState extends State<StartScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Start Screen")),
+      appBar: AppBar(
+        title: const Text("Start Screen"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const DocsScreen()));
+            },
+            child: const Text("Docs"),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(

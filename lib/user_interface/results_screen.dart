@@ -12,7 +12,6 @@ class ResultsScreen extends StatefulWidget {
 
 class _ResultsScreenState extends State<ResultsScreen> {
   bool _isBase64(String str) {
-    // Basic check for base64 validity
     final base64Regex = RegExp(
       r"^([A-Za-z0-9+/]{4})*"
       r"([A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\$",
