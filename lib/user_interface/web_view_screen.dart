@@ -124,18 +124,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
         }
       },
     );
-    // set up another one that is called returnError that just adds the lgos and goes to ResultsScreen
-    _webViewController?.addJavaScriptHandler(
-      handlerName: "returnError",
-      callback: (args) {
-        logs.add("Error: ${args.join(", ")}");
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ResultsScreen(data: {"logs": logs}),
-          ),
-        );
-      },
-    );
   }
 
   @override
