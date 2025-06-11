@@ -279,4 +279,4 @@ Your Flutter app will launch, showing the StartScreen. From there, you can selec
 
 ---
 
-With this setup, you can craft rich, interactive tasks in any web framework and integrate them seamlessly into MyCap or any similar native host. We have included a sample ZIP file in the `assets` directory to demonstrate the expected structure and functionality.
+With this setup, you can craft rich, interactive tasks in any web framework and integrate them seamlessly into MyCap. We have included a sample ZIP file in the `assets` directory to demonstrate the expected structure and functionality, feel free to study this working example in order to build your own custom Active Tasks.
