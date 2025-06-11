@@ -167,14 +167,14 @@ class _WebViewScreenState extends State<WebViewScreen> {
             _setupJavaScriptHandler();
           },
           onLoadStop: (controller, url) async {
-            await controller.evaluateJavascript(
-              source:
-                  "window.searchParams = new URLSearchParams(window.location.search);",
-            );
-
             final jsonParams = jsonEncode(widget.queryParams);
             await controller.evaluateJavascript(
-              source: "window.flutterQueryParams = $jsonParams;",
+              source:
+                  """
+    window.searchParams = new URLSearchParams(window.location.search);
+    window.flutterQueryParams = $jsonParams;
+    null;
+  """,
             );
           },
 
