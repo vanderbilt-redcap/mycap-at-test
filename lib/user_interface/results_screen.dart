@@ -38,12 +38,33 @@ class ResultsScreen extends StatelessWidget {
         title: const Text("Results"),
         leading: BackButton(onPressed: () => Navigator.of(context).pop()),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: SelectableText(
-          prettyString,
-          style: const TextStyle(fontFamily: "monospace", fontSize: 14),
-        ),
+      body: Column(
+        children: [
+          if (sanitized["error"] != null && sanitized["error"] == true)
+            Container(
+              width: double.infinity,
+              color: Colors.red,
+              padding: const EdgeInsets.all(8),
+              child: const Text(
+                "This would have thrown an error, and we would display this to the user in a real app. ",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: SelectableText(
+                prettyString,
+                style: const TextStyle(fontFamily: "monospace", fontSize: 14),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
