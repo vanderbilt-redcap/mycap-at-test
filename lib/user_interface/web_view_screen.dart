@@ -1,13 +1,13 @@
-import 'dart:convert';
-import 'dart:io';
+import "dart:convert";
+import "dart:io";
 
-import 'package:archive/archive.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+import "package:archive/archive.dart";
+import "package:flutter/material.dart";
+import "package:flutter_inappwebview/flutter_inappwebview.dart";
+import "package:path_provider/path_provider.dart";
+import "package:permission_handler/permission_handler.dart";
 
-import 'results_screen.dart';
+import "results_screen.dart";
 
 class WebViewScreen extends StatefulWidget {
   final String filePath;
@@ -46,8 +46,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
     final dir = Directory(dirPath);
     await for (final entity in dir.list(recursive: true, followLinks: false)) {
       if (entity is File &&
-          entity.path.endsWith('index.html') &&
-          !entity.path.contains('__MACOSX')) {
+          entity.path.endsWith("index.html") &&
+          !entity.path.contains("__MACOSX")) {
         return entity.path;
       }
     }
@@ -56,7 +56,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   Future<void> _prepareLocalFiles() async {
     final docs = await getApplicationDocumentsDirectory();
-    final extractionDir = Directory('${docs.path}/website_test');
+    final extractionDir = Directory("${docs.path}/website_test");
 
     if (!await extractionDir.exists()) {
       await extractionDir.create(recursive: true);
@@ -65,7 +65,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
     final bytes = await File(widget.filePath).readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
     for (final file in archive) {
-      final outPath = '${extractionDir.path}/${file.name}';
+      final outPath = "${extractionDir.path}/${file.name}";
       if (file.isFile) {
         final outFile = File(outPath);
         await outFile.create(recursive: true);
@@ -77,7 +77,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     final found = await _findIndexHtml(extractionDir.path);
     if (found == null) {
-      throw Exception('index.html not found inside ZIP');
+      throw Exception("index.html not found inside ZIP");
     }
 
     setState(() {
@@ -88,16 +88,16 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   void _setupJavaScriptHandler() {
     _webViewController?.addJavaScriptHandler(
-      handlerName: 'returnData',
+      handlerName: "returnData",
       callback: (args) {
         late Map<String, dynamic> payload;
 
-        payload = {'logs': logs};
+        payload = {"logs": logs};
         if (args.isEmpty && payload.isEmpty) return;
 
         final raw = args[0];
         if (raw is! String) {
-          debugPrint('❌ Expected String but got ${raw.runtimeType}');
+          debugPrint("❌ Expected String but got ${raw.runtimeType}");
           return;
         }
 
@@ -108,16 +108,16 @@ class _WebViewScreenState extends State<WebViewScreen> {
           } else if (decoded is Map<String, dynamic>) {
             payload = decoded;
           } else {
-            debugPrint('❌ JSON structure unexpected: ${decoded.runtimeType}');
+            debugPrint("❌ JSON structure unexpected: ${decoded.runtimeType}");
             return;
           }
 
-          debugPrint('📥 Received payload: $payload');
+          debugPrint("📥 Received payload: $payload");
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => ResultsScreen(data: payload)),
           );
         } catch (e) {
-          debugPrint('❌ JSON decode failed: $e');
+          debugPrint("❌ JSON decode failed: $e");
         }
       },
     );
@@ -126,19 +126,14 @@ class _WebViewScreenState extends State<WebViewScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading || _indexFilePath == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     // Build a file:// URI with query parameters
     final params = widget.queryParams.map((key, value) {
       if (value is Iterable) {
         // flatten an Iterable of non-String
-        return MapEntry(
-          key,
-          value.map((e) => e.toString()).toList(),
-        );
+        return MapEntry(key, value.map((e) => e.toString()).toList());
       } else {
         return MapEntry(key, value.toString());
       }
@@ -150,14 +145,12 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Embedded Website'),
+        title: const Text("Embedded Website"),
         leading: BackButton(onPressed: () => Navigator.of(context).pop()),
       ),
       body: SafeArea(
         child: InAppWebView(
-          initialUrlRequest: URLRequest(
-            url: WebUri(uri.toString()),
-          ),
+          initialUrlRequest: URLRequest(url: WebUri(uri.toString())),
           initialSettings: InAppWebViewSettings(
             javaScriptEnabled: true,
             allowFileAccessFromFileURLs: true,
@@ -175,9 +168,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
           onLoadStop: (controller, url) async {
             // Let the page know it's got query params if you need to read them in JS:
             await controller.evaluateJavascript(
-              source: '''
+              source: """
                 window.searchParams = new URLSearchParams(window.location.search);
-              ''',
+              """,
             );
           },
           onPermissionRequest: (controller, request) async {
@@ -187,13 +180,12 @@ class _WebViewScreenState extends State<WebViewScreen> {
             );
           },
           onConsoleMessage: (controller, consoleMessage) {
-            debugPrint('WebView console: ${consoleMessage.message}');
+            debugPrint("WebView console: ${consoleMessage.message}");
             logs.add(
-              '${DateTime.now().toIso8601String()}: ${consoleMessage.message}',
+              "${DateTime.now().toIso8601String()}: ${consoleMessage.message}",
             );
           },
-          onReceivedServerTrustAuthRequest:
-              (controller, challenge) async {
+          onReceivedServerTrustAuthRequest: (controller, challenge) async {
             return ServerTrustAuthResponse(
               action: ServerTrustAuthResponseAction.PROCEED,
             );

@@ -8,24 +8,24 @@ environment:
   sdk: ^3.8.1
 
 dependencies:
-  archive: ^4.0.7
+  archive: ^4.0.7 # Provides functionality for working with zip files and other archive formats.
   cupertino_icons: ^1.0.8 # Provides iOS-style icons for a Cupertino look and feel.
-  dio: ^5.8.0+1
-  file_picker: ^10.1.9
+  dio: ^5.8.0+1 # A powerful HTTP client for Dart, used for making network requests.
+  file_picker: ^10.1.9 # Allows users to pick files from the device's file system.
   flutter:
-    sdk: flutter
-  flutter_inappwebview: ^6.1.5
-  http: ^1.4.0
-  markdown: ^7.3.0
-  markdown_widget: ^2.3.2+8
-  path_provider: ^2.1.5
-  permission_handler: ^12.0.0+1
-
+    sdk: flutter # The Flutter SDK, which is the core framework for building Flutter apps.
+  flutter_inappwebview: ^6.1.5 # A Flutter plugin for displaying web content in a native WebView.
+  http: ^1.4.0 # A package for making HTTP requests in Dart.
+  markdown: ^7.3.0 # A package for parsing and rendering Markdown content.
+  markdown_widget: ^2.3.2+8 # A Flutter widget for rendering Markdown content.
+  path_provider: ^2.1.5 # Provides a way to access commonly used locations on the filesystem.
+  permission_handler: ^12.0.0+1 # A plugin for handling permissions in Flutter apps.
+  shared_preferences: ^2.5.3 # A Flutter plugin for storing simple data in key-value pairs.
 
 dev_dependencies:
-  flutter_lints: ^5.0.0
+  flutter_lints: ^5.0.0 # A set of recommended lints for Flutter projects.
   flutter_test:
-    sdk: flutter
+    sdk: flutter # The Flutter testing framework for writing unit and widget tests.
 
 flutter:
   uses-material-design: true

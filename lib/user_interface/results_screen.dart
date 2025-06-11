@@ -7,8 +7,6 @@ class ResultsScreen extends StatelessWidget {
 
   const ResultsScreen({required this.data, super.key});
 
-  /// Recursively walk [input], replacing any String longer than
-  /// [_maxStringLength] with a placeholder.
   dynamic _sanitize(dynamic input) {
     if (input is String) {
       final bytes = utf8.encode(input).length;

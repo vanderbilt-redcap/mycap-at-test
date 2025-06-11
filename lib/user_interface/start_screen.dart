@@ -121,8 +121,8 @@ class _StartScreenState extends State<StartScreen> {
           queryParams: _parametersController.text.isNotEmpty
               ? jsonDecode(
                       _parametersController.text
-                          .replaceAll('“', '"')
-                          .replaceAll('”', '"'),
+                          .replaceAll("“", '"')
+                          .replaceAll("”", '"'),
                     )
                     as Map<String, dynamic>
               : {},
@@ -210,7 +210,7 @@ class _StartScreenState extends State<StartScreen> {
                     try {
                       // replace the smart quotes with regular quotes
                       final json = jsonDecode(
-                        value.replaceAll('“', '"').replaceAll('”', '"'),
+                        value.replaceAll("“", '"').replaceAll("”", '"'),
                       );
                       if (json is! Map<String, dynamic>) {
                         return "Must be a JSON object";
