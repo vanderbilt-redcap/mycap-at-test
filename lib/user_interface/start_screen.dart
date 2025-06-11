@@ -7,6 +7,7 @@ import "package:flutter/services.dart";
 import "package:mycap_at_test_app/user_interface/docs_screen.dart";
 import "package:mycap_at_test_app/user_interface/web_view_screen.dart";
 import "package:path_provider/path_provider.dart";
+import "package:shared_preferences/shared_preferences.dart";
 
 class StartScreen extends StatefulWidget {
   const StartScreen({super.key});
@@ -33,6 +34,15 @@ class _StartScreenState extends State<StartScreen> {
   void initState() {
     super.initState();
     _checkForExistingZip();
+    _loadSavedParameters();
+  }
+
+  Future<void> _loadSavedParameters() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedParams = prefs.getString("parameters");
+    if (savedParams != null) {
+      _parametersController.text = savedParams;
+    }
   }
 
   Future<void> _checkForExistingZip() async {
@@ -103,7 +113,10 @@ class _StartScreenState extends State<StartScreen> {
     _navigateToWebView(dest.path);
   }
 
-  void _useExisting() {
+  Future<void> _useExisting() async {
+    // save current json using shared preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("parameters", _parametersController.text);
     if (_existingPath != null) {
       _navigateToWebView(_existingPath!);
     }

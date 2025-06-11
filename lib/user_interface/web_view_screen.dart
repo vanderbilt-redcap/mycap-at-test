@@ -111,6 +111,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
             debugPrint("❌ JSON structure unexpected: ${decoded.runtimeType}");
             return;
           }
+          payload["logs"] = logs;
 
           debugPrint("📥 Received payload: $payload");
           Navigator.of(context).push(
@@ -166,13 +167,17 @@ class _WebViewScreenState extends State<WebViewScreen> {
             _setupJavaScriptHandler();
           },
           onLoadStop: (controller, url) async {
-            // Let the page know it's got query params if you need to read them in JS:
             await controller.evaluateJavascript(
-              source: """
-                window.searchParams = new URLSearchParams(window.location.search);
-              """,
+              source:
+                  "window.searchParams = new URLSearchParams(window.location.search);",
+            );
+
+            final jsonParams = jsonEncode(widget.queryParams);
+            await controller.evaluateJavascript(
+              source: "window.flutterQueryParams = $jsonParams;",
             );
           },
+
           onPermissionRequest: (controller, request) async {
             return PermissionResponse(
               resources: request.resources,
