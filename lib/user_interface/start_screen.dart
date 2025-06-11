@@ -19,7 +19,7 @@ class _StartScreenState extends State<StartScreen> {
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _authController = TextEditingController();
   final TextEditingController _parametersController = TextEditingController(
-    text: "{}",
+    text: "{\"language\": \"en\"}",
   );
   final Dio _dio = Dio();
 

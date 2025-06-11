@@ -151,7 +151,46 @@ The following keywords are reserved for internal use and should not be used in y
 * **Can I include large files?**
   Yes—your ZIP can contain large media—but remember mobile storage and memory limits. The native results screen flags oversized strings.
 
----
+* **What Languages are supported?**
+  We will always pass the current language code as a parameter. Here is a list of MyCap supported languages:
+
+en - English (English)
+
+bn - বাংলা (Bengali)
+
+pt - Português (Portuguese)
+
+fr - Français (French)
+
+de - Deutsch (German)
+
+ht - Kreyòl Ayisyen (Haitian Creole)
+
+hi - हिन्दी (Hindi)
+
+it - Italiano (Italian)
+
+ja - 日本語 (Japanese)
+
+ko - 한국어 (Korean)
+
+pa - ਪੰਜਾਬੀ (Punjabi)
+
+zh - 中文 (Chinese)
+
+es - Español (Spanish)
+
+ar - العربية (Arabic)
+
+fil - Tagalog (Filipino)
+
+uk - Українська (Ukrainian)
+
+ur - اردو (Urdu)
+
+vi - Tiếng Việt (Vietnamese)
+
+default - English (English)
 
 ## How to Install and Run with Flutter
 
