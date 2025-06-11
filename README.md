@@ -3,7 +3,7 @@
 This project enables seamless integration of custom web‑based Active Tasks into the MyCap app using a ZIP‑packed website and an embedded WebView. It provides:
 
 * **StartScreen**: Pick or download a ZIP archive containing your task’s static website.
-* **WebViewScreen**: Extracts and displays the `index.html` from the ZIP, sets up a JavaScript channel to receive JSON data via `window.returnData.postMessage(...)`.
+* **WebViewScreen**: Extracts and displays the `index.html` from the ZIP, sets up a JavaScript bridge to receive JSON data via `window.flutter_inappwebview.callHandler('returnData', ...)`.
 * **ResultsScreen**: Presents received data—rendering images, flagging large text, and expanding nested structures.
 
 This repository is framework‑agnostic: you do not need Flutter installed to understand how your web task should be built and packaged.
@@ -15,108 +15,109 @@ This repository is framework‑agnostic: you do not need Flutter installed to un
 MyCap allows researchers to embed custom Active Tasks—interactive, offline‑capable web apps—into their study apps. When the user completes an activity on the webpage, your code calls:
 
 ```js
-window.returnData.postMessage(JSON.stringify({ /* structured payload */ }));
+window.flutter_inappwebview.callHandler('returnData', JSON.stringify({ /* structured payload */ }));
 ```
 
-The host app intercepts this message, parses it, and navigates to a native results display.
+The host app intercepts this handler, parses the JSON, and navigates to a native results display.
+
+---
+
+## Reading Parameters in Your JS
+
+Your Flutter host injects two objects into the page after load:
+
+1. **URL Parameters** via `window.searchParams`:
+
+   ```js
+   // Already injected by host
+   const urlParams = window.searchParams || new URLSearchParams(window.location.search);
+   console.log(Object.fromEntries(urlParams.entries()));
+   ```
+
+2. **Flutter Map** via `window.flutterQueryParams`:
+
+   ```js
+   // Injected JSON from Dart side
+   const injected = window.flutterQueryParams || {};
+   console.log(injected);
+   ```
+
+Merge them into your config:
+
+```js
+const config = {
+  identifier: injected.identifier || urlParams.get('identifier') || 'defaultIdentifier',
+  lengthOfTest: parseInt(injected.length_of_test)
+                || parseInt(urlParams.get('length_of_test'))
+                || 3,
+  intendedUseDescription: injected.intendedUseDescription
+                        || urlParams.get('intendedUseDescription')
+                        || 'Welcome to the Custom Active Task Demo.'
+};
+```
 
 ---
 
 ## Building Your Custom Active Task Website
 
-Your task is delivered as a ZIP archive containing all static assets. Follow these guidelines:
-
 1. **No External Network Calls**
 
-    * Bundle all scripts, styles, fonts, and media into your archive. Do not reference CDN or external resources.
+    * Bundle all scripts, styles, fonts, and media. No CDNs.
 
 2. **Entry Point**
 
-    * Include an `index.html` at the root or a subfolder. The app will locate the first `index.html` found (excluding any `__MACOSX` directories).
+    * Include an `index.html` (root or subfolder). The app finds the first one (ignoring `__MACOSX`).
 
 3. **JavaScript Data Return**
 
-    * Use the provided JavaScript channel `returnData`:
-
-      ```js
-      // Example: submitting simple text data
-      function submitText(text) {
-        const payload = JSON.stringify({ text });
-        if (window.returnData && window.returnData.postMessage) {
-          window.returnData.postMessage(payload);
-        }
-      }
-      ```
+   ```js
+   function submitText(text) {
+     const payload = JSON.stringify({ text });
+     window.flutter_inappwebview.callHandler('returnData', payload);
+   }
+   ```
 
 4. **File Uploads & Media**
 
-    * To return images, audio, or other binary data, encode as Base64:
-
-      ```js
-      // Example: capturing canvas image
-      canvas.toBlob(blob => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const payload = JSON.stringify({
-            image: reader.result // data:image/png;base64,...
-          });
-          window.returnData.postMessage(payload);
-        };
-        reader.readAsDataURL(blob);
-      }, 'image/png');
-      ```
+   ```js
+   canvas.toBlob(blob => {
+     const reader = new FileReader();
+     reader.onloadend = () => {
+       const payload = JSON.stringify({ image: reader.result });
+       window.flutter_inappwebview.callHandler('returnData', payload);
+     };
+     reader.readAsDataURL(blob);
+   }, 'image/png');
+   ```
 
 5. **Offline Capability**
 
-    * All assets must load from relative paths inside the ZIP. No network dependency ensures tasks work offline once downloaded.
+    * All assets load from relative paths inside the ZIP.
 
 6. **Error Handling**
 
-    * If your task encounters an error, set a boolean `error` in the returned JSON:
-      This will be returned to the REDCap app and the user will see an error message. If you do not set `error`, it will default to `false`. Any received console logs will be attached to the `logs` parameter in the returned JSON.
-
-      ```js
-      const payload = JSON.stringify({ error: true, message: 'An error occurred' });
-      window.returnData.postMessage(payload);
-      ```
+   ```js
+   const payload = JSON.stringify({ error: true, message: '...'});
+   window.flutter_inappwebview.callHandler('returnData', payload);
+   ```
 
 ---
 
 ## Usage (App Integration)
 
-Although this sample uses Flutter, the concepts apply to any native container that:
-
-1. Unpacks a ZIP into a local folder.
-2. Loads `index.html` in a WebView with file‑URL permissions.
-3. Listens on a JS channel named `returnData`.
-4. Parses the JSON string and drives native navigation or data handling.
-
-### Typical Flow
-
-1. **Download or Select ZIP**: Your app copies the `.zip` into its documents directory (e.g., `appDocDir/test.zip`).
-2. **Extract & Locate**: Unzip into a folder (e.g., `appDocDir/website_test/`) and search for `index.html`.
-3. **WebView Load**: Point the WebView at `file://.../index.html` and enable file access:
-
-   ```java
-   webview.getSettings().setAllowFileAccessFromFileURLs(true);
-   webview.getSettings().setAllowUniversalAccessFromFileURLs(true);
-   ```
-4. **JavaScript Hook**: Ensure that:
-
-   ```js
-   window.returnData.postMessage(dataString);
-   ```
-
-   invokes the native callback.
-5. **Receive Data**: On the native side, decode `dataString` into a JSON object/map.
-6. **Display Results**: Render key/value pairs natively, with images, expandable JSON, and indicators for large text.
+1. **Select or Download ZIP** → copy into app docs.
+2. **Extract & Locate** → unzip and find `index.html`.
+3. **WebView Load** with file:// URL and file-access permissions.
+4. **Inject Parameters** via `evaluateJavascript` (handled in host).
+5. **Receive Data** in your Dart `addJavaScriptHandler('returnData', ...)`.
+6. **Display Results** natively.
 
 ---
 
 ## Directory Overview
 
 ```
-lib/ (or analogous in your platform)
+lib/
 ├─ StartScreen     # ZIP selection or download
 ├─ WebViewScreen   # Extraction, WebView load, JS↔native bridge
 └─ ResultsScreen   # Native rendering of returned JSON data
@@ -126,71 +127,64 @@ lib/ (or analogous in your platform)
 
 ## Reserved Keywords
 
-The following keywords are reserved for internal use and should not be used in your task:
-* `__MACOSX` - Automatically created by macOS when zipping files, should be ignored.
-* `index.html` - The main entry point for your task, must be present.
-* `returnData` - The JavaScript channel used to send data back to the host app.
-* `file://` - The protocol used to load local files in the WebView.
-* `data:` - Used for Base64-encoded data URIs in the payload.
-* `logs` - A reserved parameter that logs all print statements from within the webview to the native console.
-* `error` - Will be used as a boolean to indicate if the task has encountered an error. It will be defaulted to false, but if your results contain an error, you can set it to true. The main app will then display an error message to the user.
+* `__MACOSX` — ignore.
+* `index.html` — entry point.
+* `returnData` — JS channel name.
+* `file://` — protocol for local assets.
+* `data:` — Base64 data URIs.
+* `logs` — captured console messages.
+* `error` — boolean flag in payload.
 
 ---
 
 ## FAQ
 
-* **How is my task installed?**
-  The host app downloads or accepts your ZIP, unpacks it locally, and loads it offline from the file system.
+**How is my task installed?**
+Host unzips and loads offline.
 
-* **Why must everything be local?**
-  To support offline use and avoid network delays. Any missing asset will break your task.
+**Why local?**
+Offline support and performance.
 
-* **What formats can I send back?**
-  Any JSON‑serializable structure. Base64 strings for binary data. Nested objects or arrays are supported.
+**What can I send back?**
+Any JSON‑serializable structure; Base64 for binaries.
 
-* **Can I include large files?**
-  Yes—your ZIP can contain large media—but remember mobile storage and memory limits. The native results screen flags oversized strings.
+**Languages Supported**
 
-* **What Languages are supported?**
-  We will always pass the current language code as a parameter. Here is a list of MyCap supported languages:
+| Code    | Native Name    | English Name   |
+| ------- | -------------- | -------------- |
+| en      | English        | English        |
+| bn      | বাংলা          | Bengali        |
+| pt      | Português      | Portuguese     |
+| fr      | Français       | French         |
+| de      | Deutsch        | German         |
+| ht      | Kreyòl Ayisyen | Haitian Creole |
+| hi      | हिन्दी         | Hindi          |
+| it      | Italiano       | Italian        |
+| ja      | 日本語            | Japanese       |
+| ko      | 한국어            | Korean         |
+| pa      | ਪੰਜਾਬੀ         | Punjabi        |
+| zh      | 中文             | Chinese        |
+| es      | Español        | Spanish        |
+| ar      | العربية        | Arabic         |
+| fil     | Tagalog        | Filipino       |
+| uk      | Українська     | Ukrainian      |
+| ur      | اردو           | Urdu           |
+| vi      | Tiếng Việt     | Vietnamese     |
+| default | English        | English        |
 
-en - English (English)
+---
 
-bn - বাংলা (Bengali)
+## Flutter Setup (Optional)
 
-pt - Português (Portuguese)
+1. Install Flutter SDK (Windows/macOS).
+2. Configure Android (SDK, licenses) or iOS (Xcode, CocoaPods).
+3. Clone repo and run:
 
-fr - Français (French)
-
-de - Deutsch (German)
-
-ht - Kreyòl Ayisyen (Haitian Creole)
-
-hi - हिन्दी (Hindi)
-
-it - Italiano (Italian)
-
-ja - 日本語 (Japanese)
-
-ko - 한국어 (Korean)
-
-pa - ਪੰਜਾਬੀ (Punjabi)
-
-zh - 中文 (Chinese)
-
-es - Español (Spanish)
-
-ar - العربية (Arabic)
-
-fil - Tagalog (Filipino)
-
-uk - Українська (Ukrainian)
-
-ur - اردو (Urdu)
-
-vi - Tiếng Việt (Vietnamese)
-
-default - English (English)
+   ```bash
+   flutter pub get
+   cd ios && pod install && cd ..
+   flutter run
+   ```
 
 ## How to Install and Run with Flutter
 
@@ -203,7 +197,7 @@ If you want to build and test the host integration using Flutter, follow these s
 * For Android: Android SDK, Android Studio, and an Android device/emulator.
 * For iOS (macOS only): Xcode and an iOS device/simulator.
 
-### 1. Install Flutter SDK
+### 1. Install Flutter SDK 
 
 #### Windows
 
