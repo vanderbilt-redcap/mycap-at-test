@@ -247,7 +247,7 @@ class _StartScreenState extends State<StartScreen> {
                   subtitle: Text(_existingPath!),
                   trailing: ElevatedButton(
                     onPressed: _useExisting,
-                    child: const Text("Use Existing"),
+                    child: const Text("Launch"),
                   ),
                 ),
               ],

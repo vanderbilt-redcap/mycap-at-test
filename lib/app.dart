@@ -9,9 +9,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: "MyCap AT Test",
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
       home: const StartScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
