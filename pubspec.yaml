@@ -15,6 +15,7 @@ dependencies:
   flutter:
     sdk: flutter # The Flutter SDK, which is the core framework for building Flutter apps.
   flutter_inappwebview: ^6.1.5 # A Flutter plugin for displaying web content in a native WebView.
+  gap: ^3.0.1
   http: ^1.4.0 # A package for making HTTP requests in Dart.
   markdown: ^7.3.0 # A package for parsing and rendering Markdown content.
   markdown_widget: ^2.3.2+8 # A Flutter widget for rendering Markdown content.
@@ -23,7 +24,7 @@ dependencies:
   shared_preferences: ^2.5.3 # A Flutter plugin for storing simple data in key-value pairs.
 
 dev_dependencies:
-  flutter_lints: ^5.0.0 # A set of recommended lints for Flutter projects.
+  flutter_lints: ^6.0.0 # A set of recommended lints for Flutter projects.
   flutter_test:
     sdk: flutter # The Flutter testing framework for writing unit and widget tests.
 
