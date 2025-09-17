@@ -4,6 +4,8 @@ import "package:dio/dio.dart";
 import "package:file_picker/file_picker.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:gap/gap.dart";
+import "package:mycap_at_test_app/logical_interface/docs_repository.dart";
 import "package:mycap_at_test_app/user_interface/docs_screen.dart";
 import "package:mycap_at_test_app/user_interface/web_view_screen.dart";
 import "package:path_provider/path_provider.dart";
@@ -29,6 +31,7 @@ class _StartScreenState extends State<StartScreen> {
   bool _isDownloading = false;
   bool _hasExisting = false;
   String? _existingPath;
+  bool _loading = false;
 
   @override
   void initState() {
@@ -151,10 +154,23 @@ class _StartScreenState extends State<StartScreen> {
         title: const Text("Start Screen"),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const DocsScreen()));
+            onPressed: () async {
+              setState(() {
+                _loading = true;
+              });
+              await Future.delayed(const Duration(milliseconds: 250));
+              final content = await DocsRepository().readDocsFromAssets(
+                "README.md",
+              );
+
+              setState(() {
+                _loading = false;
+              });
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => DocsScreen(docsContent: content),
+                ),
+              );
             },
             child: const Text("Docs"),
           ),
@@ -162,97 +178,107 @@ class _StartScreenState extends State<StartScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ListView(
-            children: [
-              ElevatedButton.icon(
-                icon: const Icon(Icons.upload_file),
-                label: const Text("Upload ZIP from Device"),
-                onPressed: _pickLocalZip,
-              ),
-              const SizedBox(height: 16),
+        child: Column(
+          children: [
+            if (_loading) const LinearProgressIndicator(),
 
-              ElevatedButton.icon(
-                icon: const Icon(Icons.insert_drive_file),
-                label: const Text("Use Bundled Test ZIP"),
-                onPressed: _useBundledZip,
-              ),
-              const SizedBox(height: 24),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                child: ListView(
+                  children: [
+                    const Gap(16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.upload_file),
+                      label: const Text("Upload ZIP from Device"),
+                      onPressed: _pickLocalZip,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.insert_drive_file),
+                      label: const Text("Use Bundled Test ZIP"),
+                      onPressed: _useBundledZip,
+                    ),
+                    const SizedBox(height: 24),
 
-              const Text(
-                "Download ZIP from URL",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              TextField(
-                controller: _urlController,
-                decoration: const InputDecoration(
-                  labelText: "ZIP File URL",
-                  hintText: "https://example.com/archive.zip",
-                ),
-                keyboardType: TextInputType.url,
-              ),
-              TextField(
-                controller: _authController,
-                decoration: const InputDecoration(
-                  labelText: "Optional Auth Header",
-                  hintText: "Bearer your_token_here",
-                ),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                icon: _isDownloading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.download),
-                label: Text(_isDownloading ? "Downloading…" : "Download ZIP"),
-                onPressed: _isDownloading ? null : _downloadZip,
-              ),
-              const SizedBox(height: 24),
+                    const Text(
+                      "Download ZIP from URL",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    TextField(
+                      controller: _urlController,
+                      decoration: const InputDecoration(
+                        labelText: "ZIP File URL",
+                        hintText: "https://example.com/archive.zip",
+                      ),
+                      keyboardType: TextInputType.url,
+                    ),
+                    TextField(
+                      controller: _authController,
+                      decoration: const InputDecoration(
+                        labelText: "Optional Auth Header",
+                        hintText: "Bearer your_token_here",
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      icon: _isDownloading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.download),
+                      label: Text(
+                        _isDownloading ? "Downloading…" : "Download ZIP",
+                      ),
+                      onPressed: _isDownloading ? null : _downloadZip,
+                    ),
+                    const SizedBox(height: 24),
 
-              TextFormField(
-                controller: _parametersController,
-                decoration: const InputDecoration(
-                  labelText: "Optional Parameters",
-                ),
-                validator: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    try {
-                      // replace the smart quotes with regular quotes
-                      final json = jsonDecode(
-                        value.replaceAll("“", '"').replaceAll("”", '"'),
-                      );
-                      if (json is! Map<String, dynamic>) {
-                        return "Must be a JSON object";
-                      }
-                    } catch (e) {
-                      print("Invalid JSON: $e");
-                      return "Invalid JSON format";
-                    }
-                  }
-                  return null;
-                },
-                keyboardType: TextInputType.text,
-              ),
-              const SizedBox(height: 24),
+                    TextFormField(
+                      controller: _parametersController,
+                      decoration: const InputDecoration(
+                        labelText: "Optional Parameters",
+                      ),
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          try {
+                            // replace the smart quotes with regular quotes
+                            final json = jsonDecode(
+                              value.replaceAll("“", '"').replaceAll("”", '"'),
+                            );
+                            if (json is! Map<String, dynamic>) {
+                              return "Must be a JSON object";
+                            }
+                          } catch (e) {
+                            print("Invalid JSON: $e");
+                            return "Invalid JSON format";
+                          }
+                        }
+                        return null;
+                      },
+                      keyboardType: TextInputType.text,
+                    ),
+                    const SizedBox(height: 24),
 
-              if (_hasExisting && _existingPath != null) ...[
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.folder_open),
-                  title: const Text("Existing ZIP Found"),
-                  subtitle: Text(_existingPath!),
-                  trailing: ElevatedButton(
-                    onPressed: _useExisting,
-                    child: const Text("Launch"),
-                  ),
+                    if (_hasExisting && _existingPath != null) ...[
+                      const Divider(),
+                      ListTile(
+                        leading: const Icon(Icons.folder_open),
+                        title: const Text("Existing ZIP Found"),
+                        subtitle: Text(_existingPath!),
+                        trailing: ElevatedButton(
+                          onPressed: _useExisting,
+                          child: const Text("Launch"),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );

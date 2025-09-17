@@ -278,8 +278,8 @@ flutter run -d ios
 Your Flutter app will launch, showing the StartScreen. From there, you can select or download a ZIP and test your Active Task integration end‑to‑end.
 
 This app was last tested successfully on:
- - Flutter 3.32.2
- - Xcode 16.2
+ - Flutter 3.35.4
+ - Xcode 26.0
 ---
 
 With this setup, you can craft rich, interactive tasks in any web framework and integrate them seamlessly into MyCap. We have included a sample ZIP file in the `assets` directory to demonstrate the expected structure and functionality, feel free to study this working example in order to build your own custom Active Tasks.
