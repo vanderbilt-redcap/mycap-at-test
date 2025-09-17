@@ -1,0 +1,18 @@
+name: Block Invalid Merges
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-branch-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR source branch
+        run: |
+          echo "Source branch: ${{ github.head_ref }}"
+          if [[ "${{ github.head_ref }}" != hotfix/* && "${{ github.head_ref }}" != develop ]]; then
+            echo "❌ Only hotfix/* or develop branches can be merged into main."
+            exit 1
+          fi
