@@ -1,37 +1,15 @@
-import "dart:convert";
 import "package:flutter/material.dart";
+import "package:mycap_at_test_app/utilities/sanitize_service.dart";
 
 class ResultsScreen extends StatelessWidget {
   final Map<String, dynamic> data;
-  static const _maxStringLength = 200;
 
   const ResultsScreen({required this.data, super.key});
 
-  dynamic _sanitize(dynamic input) {
-    if (input is String) {
-      final bytes = utf8.encode(input).length;
-      if (input.length > _maxStringLength) {
-        return "Large data, $bytes bytes";
-      }
-      return input;
-    }
-    if (input is Map<String, dynamic>) {
-      return input.map((key, value) => MapEntry(key, _sanitize(value)));
-    }
-    if (input is List) {
-      return input.map(_sanitize).toList();
-    }
-    return input; // numbers, booleans, null, etc.
-  }
-
-  String _prettyJson(Map<String, dynamic> json) {
-    return const JsonEncoder.withIndent("  ").convert(json);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final sanitized = _sanitize(data) as Map<String, dynamic>;
-    final prettyString = _prettyJson(sanitized);
+    final sanitized = SanitizeService.sanitize(data) as Map<String, dynamic>;
+    final prettyString = SanitizeService.prettyJson(sanitized);
 
     return Scaffold(
       appBar: AppBar(
@@ -54,7 +32,6 @@ class ResultsScreen extends StatelessWidget {
                 ),
               ),
             ),
-
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),

@@ -277,7 +277,7 @@ flutter run -d ios
 
 Your Flutter app will launch, showing the StartScreen. From there, you can select or download a ZIP and test your Active Task integration end‑to‑end.
 
-This app was tested successfully on:
+This app was last tested successfully on:
  - Flutter 3.32.2
  - Xcode 16.2
 ---

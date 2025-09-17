@@ -88,7 +88,7 @@ class _StartScreenState extends State<StartScreen> {
         savePath,
         options: Options(headers: headers),
         onReceiveProgress: (received, total) {
-          // update progress indicator if desired
+          print("Download progress: $received / $total");
         },
       );
 
@@ -262,6 +262,7 @@ class _StartScreenState extends State<StartScreen> {
   void dispose() {
     _urlController.dispose();
     _authController.dispose();
+    _parametersController.dispose();
     super.dispose();
   }
 }

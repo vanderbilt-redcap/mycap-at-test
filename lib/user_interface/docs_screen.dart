@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:markdown_widget/widget/markdown.dart";
+import "package:mycap_at_test_app/logical_interface/docs_repository.dart";
 
 class DocsScreen extends StatefulWidget {
   const DocsScreen({super.key});
@@ -11,23 +12,17 @@ class DocsScreen extends StatefulWidget {
 class _DocsScreenState extends State<DocsScreen> {
   String? docsContent;
 
-  Future<void> readDocs() async {
-    try {
-      final content = await DefaultAssetBundle.of(
-        context,
-      ).loadString("README.md");
-      setState(() {
-        docsContent = content;
-      });
-    } catch (e) {
-      print("Error loading docs: $e");
-    }
-  }
-
   @override
   void initState() {
     super.initState();
     readDocs();
+  }
+
+  Future<void> readDocs() async {
+    final content = await DocsRepository.readDocs(context);
+    setState(() {
+      docsContent = content;
+    });
   }
 
   @override
