@@ -1,5 +1,7 @@
 # MyCap Active Task WebView Integration
 
+PLEASE REPORT ANY ISSUES TO mycap@vumc.org
+
 This project enables seamless integration of custom web‑based Active Tasks into the MyCap app using a ZIP‑packed website and an embedded WebView. It provides:
 
 * **StartScreen**: Pick or download a ZIP archive containing your task’s static website.
@@ -278,10 +280,10 @@ flutter run -d ios
 Your Flutter app will launch, showing the StartScreen. From there, you can select or download a ZIP and test your Active Task integration end‑to‑end.
 
 This app was last tested successfully on:
- - Flutter 3.35.4
- - Xcode 26.0
- - Android Studio Narwhal 3 Feature Drop | 2025.1.3
- - iPhone 15 Pro Max with iOS 26.0
+ - Flutter 3.41.2
+ - Xcode 26.3
+ - Android Studio Panda 1 | 2025.3.1 Patch 1 
+ - iPhone 15 Pro Max with iOS 26.3
 ---
 
 With this setup, you can craft rich, interactive tasks in any web framework and integrate them seamlessly into MyCap. We have included a sample ZIP file in the `assets` directory to demonstrate the expected structure and functionality, feel free to study this working example in order to build your own custom Active Tasks.
