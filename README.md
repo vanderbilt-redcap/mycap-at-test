@@ -1,5 +1,7 @@
 # MyCap Active Task WebView Integration
 
+PLEASE REPORT ANY ISSUES TO mycap@vumc.org
+
 This project enables seamless integration of custom web‑based Active Tasks into the MyCap app using a ZIP‑packed website and an embedded WebView. It provides:
 
 * **StartScreen**: Pick or download a ZIP archive containing your task’s static website.
