@@ -117,9 +117,6 @@ class _StartScreenState extends State<StartScreen> {
   }
 
   Future<void> _useExisting() async {
-    // save current json using shared preferences
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("parameters", _parametersController.text);
     if (_existingPath != null) {
       _navigateToWebView(_existingPath!);
     }
@@ -129,6 +126,9 @@ class _StartScreenState extends State<StartScreen> {
     if (_formKey.currentState?.validate() != true) {
       return;
     }
+    SharedPreferences.getInstance().then(
+      (prefs) => prefs.setString("parameters", _parametersController.text),
+    );
     print("The expected parameters are: ${_parametersController.text}");
     Navigator.of(context).push(
       MaterialPageRoute(

@@ -57,9 +57,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
     final docs = await getApplicationDocumentsDirectory();
     final extractionDir = Directory("${docs.path}/website_test");
 
-    if (!await extractionDir.exists()) {
-      await extractionDir.create(recursive: true);
+    if (await extractionDir.exists()) {
+      await extractionDir.delete(recursive: true);
     }
+    await extractionDir.create(recursive: true);
 
     final bytes = await File(widget.filePath).readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
@@ -89,12 +90,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
     _webViewController?.addJavaScriptHandler(
       handlerName: "returnData",
       callback: (args) {
-        late Map<String, dynamic> payload;
-
-        payload = {"logs": logs};
-        if (args.isEmpty && payload.isEmpty) return;
+        if (args.isEmpty) return;
 
         final raw = args[0];
+        late Map<String, dynamic> payload;
         if (raw is! String) {
           debugPrint("❌ Expected String but got ${raw.runtimeType}");
           return;
