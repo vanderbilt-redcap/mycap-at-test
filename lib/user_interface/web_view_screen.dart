@@ -26,6 +26,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   InAppWebViewController? _webViewController;
   bool _isLoading = true;
   String? _indexFilePath;
+  String? _extractionDirPath;
   final List<String> logs = [];
 
   @override
@@ -77,11 +78,18 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     final found = await _findIndexHtml(extractionDir.path);
     if (found == null) {
-      throw Exception("index.html not found inside ZIP");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("index.html not found inside ZIP")),
+        );
+        Navigator.of(context).pop();
+      }
+      return;
     }
 
     setState(() {
       _indexFilePath = found;
+      _extractionDirPath = extractionDir.path;
       _isLoading = false;
     });
   }
@@ -154,9 +162,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
             javaScriptEnabled: true,
             allowFileAccessFromFileURLs: true,
             allowUniversalAccessFromFileURLs: true,
-            allowingReadAccessTo: WebUri(
-              'file://${_indexFilePath!.substring(0, _indexFilePath!.lastIndexOf('/'))}/',
-            ),
+            allowingReadAccessTo: WebUri("file://$_extractionDirPath/"),
             mediaPlaybackRequiresUserGesture: false,
             allowsInlineMediaPlayback: true,
           ),

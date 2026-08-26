@@ -59,12 +59,12 @@ class _StartScreenState extends State<StartScreen> {
   }
 
   Future<void> _pickLocalZip() async {
-    final result = await FilePicker.platform.pickFiles(
+    final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ["zip"],
     );
-    if (result != null && result.files.single.path != null) {
-      final picked = File(result.files.single.path!);
+    if (file?.path != null) {
+      final picked = File(file!.path!);
       final dir = await getApplicationDocumentsDirectory();
       final dest = File("${dir.path}/test.zip");
       await picked.copy(dest.path);
@@ -289,6 +289,7 @@ class _StartScreenState extends State<StartScreen> {
     _urlController.dispose();
     _authController.dispose();
     _parametersController.dispose();
+    _dio.close(force: true);
     super.dispose();
   }
 }

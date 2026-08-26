@@ -8,8 +8,7 @@ class ResultsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sanitized = SanitizeService.sanitize(data) as Map<String, dynamic>;
-    final prettyString = SanitizeService.prettyJson(sanitized);
+    final prettyString = SanitizeService.prettyJson(data);
 
     return Scaffold(
       appBar: AppBar(
@@ -18,7 +17,7 @@ class ResultsScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          if (sanitized["error"] != null && sanitized["error"] == true)
+          if (data["error"] == true)
             Container(
               width: double.infinity,
               color: Colors.red,
