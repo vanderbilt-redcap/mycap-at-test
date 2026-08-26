@@ -1,3 +1,4 @@
+import "dart:collection";
 import "dart:convert";
 import "dart:io";
 
@@ -166,20 +167,19 @@ class _WebViewScreenState extends State<WebViewScreen> {
             mediaPlaybackRequiresUserGesture: false,
             allowsInlineMediaPlayback: true,
           ),
+          initialUserScripts: UnmodifiableListView([
+            UserScript(
+              source:
+                  """
+window.flutterQueryParams = ${jsonEncode(widget.queryParams)};
+window.searchParams = new URLSearchParams(window.location.search);
+""",
+              injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+            ),
+          ]),
           onWebViewCreated: (controller) {
             _webViewController = controller;
             _setupJavaScriptHandler();
-          },
-          onLoadStop: (controller, url) async {
-            final jsonParams = jsonEncode(widget.queryParams);
-            await controller.evaluateJavascript(
-              source:
-                  """
-    window.searchParams = new URLSearchParams(window.location.search);
-    window.flutterQueryParams = $jsonParams;
-    null;
-  """,
-            );
           },
 
           onPermissionRequest: (controller, request) async {
