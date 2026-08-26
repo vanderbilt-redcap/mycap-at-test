@@ -49,13 +49,18 @@ class _StartScreenState extends State<StartScreen> {
   }
 
   Future<void> _checkForExistingZip() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/test.zip");
-    final exists = await file.exists();
+    final prefs = await SharedPreferences.getInstance();
+    final savedZipPath = prefs.getString("lastZipPath");
+    final exists = savedZipPath != null && await File(savedZipPath).exists();
     setState(() {
       _hasExisting = exists;
-      _existingPath = exists ? file.path : null;
+      _existingPath = exists ? savedZipPath : null;
     });
+  }
+
+  Future<void> _saveZipPath(String path) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("lastZipPath", path);
   }
 
   Future<void> _pickLocalZip() async {
@@ -65,9 +70,11 @@ class _StartScreenState extends State<StartScreen> {
     );
     if (file?.path != null) {
       final picked = File(file!.path!);
+      final fileName = picked.uri.pathSegments.last;
       final dir = await getApplicationDocumentsDirectory();
-      final dest = File("${dir.path}/test.zip");
+      final dest = File("${dir.path}/$fileName");
       await picked.copy(dest.path);
+      await _saveZipPath(dest.path);
       await _checkForExistingZip();
       _navigateToWebView(dest.path);
     }
@@ -84,7 +91,11 @@ class _StartScreenState extends State<StartScreen> {
       if (auth.isNotEmpty) headers["Authorization"] = auth;
 
       final dir = await getApplicationDocumentsDirectory();
-      final savePath = "${dir.path}/test.zip";
+      final fileName = Uri.parse(url).pathSegments.lastWhere(
+        (s) => s.isNotEmpty,
+        orElse: () => "download.zip",
+      );
+      final savePath = "${dir.path}/$fileName";
 
       await _dio.download(
         url,
@@ -95,6 +106,7 @@ class _StartScreenState extends State<StartScreen> {
         },
       );
 
+      await _saveZipPath(savePath);
       await _checkForExistingZip();
       _navigateToWebView(savePath);
     } catch (e) {
@@ -112,6 +124,7 @@ class _StartScreenState extends State<StartScreen> {
     final dir = await getApplicationDocumentsDirectory();
     final dest = File("${dir.path}/test.zip");
     await dest.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+    await _saveZipPath(dest.path);
     await _checkForExistingZip();
     _navigateToWebView(dest.path);
   }
