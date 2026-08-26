@@ -1,3 +1,4 @@
+import "dart:collection";
 import "dart:convert";
 import "dart:io";
 
@@ -26,6 +27,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   InAppWebViewController? _webViewController;
   bool _isLoading = true;
   String? _indexFilePath;
+  String? _extractionDirPath;
   final List<String> logs = [];
 
   @override
@@ -57,9 +59,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
     final docs = await getApplicationDocumentsDirectory();
     final extractionDir = Directory("${docs.path}/website_test");
 
-    if (!await extractionDir.exists()) {
-      await extractionDir.create(recursive: true);
+    if (await extractionDir.exists()) {
+      await extractionDir.delete(recursive: true);
     }
+    await extractionDir.create(recursive: true);
 
     final bytes = await File(widget.filePath).readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
@@ -76,11 +79,18 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     final found = await _findIndexHtml(extractionDir.path);
     if (found == null) {
-      throw Exception("index.html not found inside ZIP");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("index.html not found inside ZIP")),
+        );
+        Navigator.of(context).pop();
+      }
+      return;
     }
 
     setState(() {
       _indexFilePath = found;
+      _extractionDirPath = extractionDir.path;
       _isLoading = false;
     });
   }
@@ -89,12 +99,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
     _webViewController?.addJavaScriptHandler(
       handlerName: "returnData",
       callback: (args) {
-        late Map<String, dynamic> payload;
-
-        payload = {"logs": logs};
-        if (args.isEmpty && payload.isEmpty) return;
+        if (args.isEmpty) return;
 
         final raw = args[0];
+        late Map<String, dynamic> payload;
         if (raw is! String) {
           debugPrint("❌ Expected String but got ${raw.runtimeType}");
           return;
@@ -155,26 +163,23 @@ class _WebViewScreenState extends State<WebViewScreen> {
             javaScriptEnabled: true,
             allowFileAccessFromFileURLs: true,
             allowUniversalAccessFromFileURLs: true,
-            allowingReadAccessTo: WebUri(
-              'file://${_indexFilePath!.substring(0, _indexFilePath!.lastIndexOf('/'))}/',
-            ),
+            allowingReadAccessTo: WebUri("file://$_extractionDirPath/"),
             mediaPlaybackRequiresUserGesture: false,
             allowsInlineMediaPlayback: true,
           ),
+          initialUserScripts: UnmodifiableListView([
+            UserScript(
+              source:
+                  """
+window.flutterQueryParams = ${jsonEncode(widget.queryParams)};
+window.searchParams = new URLSearchParams(window.location.search);
+""",
+              injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+            ),
+          ]),
           onWebViewCreated: (controller) {
             _webViewController = controller;
             _setupJavaScriptHandler();
-          },
-          onLoadStop: (controller, url) async {
-            final jsonParams = jsonEncode(widget.queryParams);
-            await controller.evaluateJavascript(
-              source:
-                  """
-    window.searchParams = new URLSearchParams(window.location.search);
-    window.flutterQueryParams = $jsonParams;
-    null;
-  """,
-            );
           },
 
           onPermissionRequest: (controller, request) async {

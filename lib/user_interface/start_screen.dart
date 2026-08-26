@@ -59,12 +59,12 @@ class _StartScreenState extends State<StartScreen> {
   }
 
   Future<void> _pickLocalZip() async {
-    final result = await FilePicker.platform.pickFiles(
+    final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ["zip"],
     );
-    if (result != null && result.files.single.path != null) {
-      final picked = File(result.files.single.path!);
+    if (file?.path != null) {
+      final picked = File(file!.path!);
       final dir = await getApplicationDocumentsDirectory();
       final dest = File("${dir.path}/test.zip");
       await picked.copy(dest.path);
@@ -117,9 +117,6 @@ class _StartScreenState extends State<StartScreen> {
   }
 
   Future<void> _useExisting() async {
-    // save current json using shared preferences
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("parameters", _parametersController.text);
     if (_existingPath != null) {
       _navigateToWebView(_existingPath!);
     }
@@ -129,6 +126,9 @@ class _StartScreenState extends State<StartScreen> {
     if (_formKey.currentState?.validate() != true) {
       return;
     }
+    SharedPreferences.getInstance().then(
+      (prefs) => prefs.setString("parameters", _parametersController.text),
+    );
     print("The expected parameters are: ${_parametersController.text}");
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -289,6 +289,7 @@ class _StartScreenState extends State<StartScreen> {
     _urlController.dispose();
     _authController.dispose();
     _parametersController.dispose();
+    _dio.close(force: true);
     super.dispose();
   }
 }
